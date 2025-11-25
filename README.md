@@ -1,6 +1,84 @@
 # Visitor-Counting-System-Backend
 
+# Overview
+
+This repository contains the backend implementation for an internal activity to monitor visitor distribution across rooms in a building. Cameras installed in each room capture images every minute. A high-performance backend computer processes these images using a YOLO model to count the number of people in each room. The processed data (room ID, timestamp, people count) is stored in Supabase, which acts as the central database.
+A separate front-end system (static website hosted on GitHub Pages) fetches this data and displays the latest occupancy status for guards and visitors. This README includes front-end context for clarity, but the code in this repository is backend only.
 A backend implementation for an internal activity to monitor visitor distribution across rooms in a building using YOLO v8 for people detection.
+
+# Expected Data Flow
+
+Cameras → Base64 images → Computation Computer → JPEG conversion → YOLO analysis → Supabase → Front-End Computer → Display latest occupancy
+
+# Why Supabase?
+
+Why Supabase?
+Supabase provides:
+
+A PostgreSQL database for structured storage.
+REST and Realtime APIs for easy data access.
+Built-in authentication and Row Level Security (RLS) for secure operations.
+Free and simple
+
+# Architecture 
+
+Architecture
+
+Computation Computer (Backend):
+
+Receives Base64 images from cameras.
+Converts to JPEG.
+Runs YOLO inference to count people.
+Sends {room_id, timestamp, people_count} to Supabase using the service role key.
+
+
+Supabase:
+
+Stores all records in a single table room_stats.
+Provides APIs for read/write operations.
+
+# Table Creation SQL
+
+CREATE TABLE room_stats (
+  id BIGSERIAL PRIMARY KEY,
+  room_id TEXT NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL,
+  people_count INT NOT NULL
+);
+
+# Environment variables
+
+SUPABASE_URL=<your-supabase-url>
+SUPABASE_SERVICE_KEY=<your-service-role-key>
+
+
+# Front-End Computer:
+
+Static site hosted on GitHub Pages.
+Fetches latest snapshot using anon key.
+Displays occupancy per room (future: color coding, floor plan UI).
+
+# Tech Stack
+
+Tech Stack
+
+Backend:
+
+Python 3.x
+YOLO (Ultralytics or custom model)
+Supabase Python SDK
+
+
+Frontend:
+
+HTML + JavaScript
+Supabase JS SDK
+GitHub Pages for hosting
+
+
+Database:
+
+Supabase PostgreSQL
 
 ## Features
 
@@ -96,3 +174,15 @@ python process_images.py "<base64_image>" "<room_id>"
 - `ultralytics` - YOLO v8 implementation
 - `opencv-python` - Image processing
 - `python-dotenv` - Environment variable management
+
+
+## Future plan for front end (not considered in this repo)
+
+Roadmap For Front End repo
+
+Phase 1: Manual refresh on front end, grid layout for rooms.
+Phase 2: Real-time updates using Supabase Realtime.
+Phase 3: Floor plan overlay for visual clarity.
+Phase 4: Color coding for occupancy thresholds.
+Phase 5: Data export for analysis (CSV).
+Phase 6: Historical trend charts and heatmaps.
