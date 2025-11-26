@@ -2,6 +2,183 @@
 
 A production-ready backend system for monitoring visitor distribution across rooms using YOLO v8 object detection and Supabase for data storage. This system processes images from cameras installed in each room, counts people using AI, and stores the results for real-time monitoring.
 
+---
+
+## ⚠️ CRITICAL: Virtual Environment & Pylance Setup
+
+**KNOWN ISSUE**: Pylance may show import errors even when packages are installed and the server runs correctly.
+
+### Root Cause
+1. **GitHub Codespaces Memory Limit**: Installing `ultralytics` + PyTorch (~1GB) often gets terminated (Exit 143)
+2. **Pylance Cache**: VS Code's Pylance extension caches Python environment info and doesn't auto-refresh
+3. **Multiple venv folders**: System may create `.venv` while you use `venv`, causing confusion
+
+### Solution: Step-by-Step Setup
+
+```bash
+# 1. Create virtual environment
+python3 -m venv venv
+
+# 2. Activate venv
+source venv/bin/activate
+
+# 3. Verify you're using venv Python (CRITICAL!)
+which python
+# Should output: /workspaces/Visitor-Counting-System-Backend/venv/bin/python
+
+# 4. Install packages in specific order (avoid memory issues)
+pip install --upgrade pip
+pip install python-dotenv flask gunicorn supabase opencv-python-headless
+
+# 5. Install PyTorch CPU-only (lighter than full version)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 6. Install ultralytics WITHOUT dependencies first
+pip install ultralytics --no-deps
+
+# 7. Install remaining ultralytics dependencies
+pip install pillow numpy pyyaml requests tqdm matplotlib seaborn pandas psutil py-cpuinfo
+
+# 8. Verify all packages installed
+pip list | grep -E "flask|ultralytics|opencv|supabase"
+
+# 9. Start server (should work even if Pylance shows errors)
+python -m server.app
+```
+
+### Fixing Pylance Import Errors
+
+If Pylance shows import errors but server runs fine:
+
+**Option 1: Reload VS Code Window**
+- Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+- Type: "Developer: Reload Window"
+- Wait for Pylance to reindex
+
+**Option 2: Manually Select Python Interpreter**
+- Press `Ctrl+Shift+P`
+- Type: "Python: Select Interpreter"
+- Choose: `./venv/bin/python`
+
+**Option 3: Restart Pylance**
+- Press `Ctrl+Shift+P`
+- Type: "Pylance: Restart Language Server"
+
+**Option 4: Clear Pylance Cache** (nuclear option)
+```bash
+rm -rf ~/.vscode-server/data/User/workspaceStorage/*/ms-python.vscode-pylance/
+```
+
+### Verification Commands
+
+```bash
+# Check Python is from venv
+which python
+# Expected: /workspaces/.../venv/bin/python (NOT /usr/bin/python3!)
+
+# Check packages installed in venv
+python -c "import flask, ultralytics, cv2, supabase; print('✓ All imports work')"
+
+# Start server (ignore Pylance errors if this works)
+python -m server.app
+```
+
+### Why This Happens
+
+- **Codespaces has limited RAM**: Large package installations get killed by OS
+- **Pylance caches environment**: Doesn't detect new packages without refresh
+- **Multiple Python environments**: System Python vs venv Python confusion
+
+### Quick Test Without Fixing Pylance
+
+```bash
+# If server runs successfully, Pylance errors are cosmetic
+python -m server.app
+
+# Test in another terminal:
+curl http://localhost:8000/health
+# Should return: {"status":"ready"}
+```
+
+**Bottom line**: If the server starts and responds to requests, ignore Pylance errors. They're just editor warnings, not runtime problems.
+
+---
+
+## 🚀 Quick Start - Running the Server
+
+### 1. Start the Server
+
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Start Flask server
+python -m server.app
+```
+
+**Expected output:**
+```
+INFO - Loading environment configuration...
+INFO - SUPABASE_URL: https://rgkkadtaiivcuuvekwdo.supabase.co
+INFO - Initializing Image Processing Pipeline...
+INFO - Loading YOLO model from yolov8n.pt...
+INFO - YOLO model loaded successfully
+INFO - Pipeline ready
+ * Running on http://0.0.0.0:8000
+```
+
+### 2. Testing with Postman
+
+**For GitHub Codespaces:**
+
+1. **Make Port Public** (CRITICAL!)
+   - Go to **PORTS** tab (bottom panel)
+   - Right-click port **8000**
+   - Select **Port Visibility** → **Public**
+
+2. **Get Forwarded URL**
+   - In PORTS tab, copy the forwarded address for port 8000
+   - Format: `https://xyz-8000.app.github.dev`
+
+3. **Test in Postman**
+   - Method: `GET`
+   - URL: `https://your-forwarded-url/health` (⚠️ must include `/health`)
+   - Expected response:
+   ```json
+   {
+     "service": "visitor-counting-ingestion-server",
+     "status": "ready",
+     "timestamp": "2025-11-26T15:20:41.590854Z"
+   }
+   ```
+
+**For Local Development:**
+- Simply use: `http://localhost:8000/health`
+
+### 3. API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check (no auth) |
+| `/api/v1/process-image` | POST | Process base64 image |
+| `/api/v1/process-image-bytes` | POST | Process raw JPEG file |
+
+**API Key (required for processing endpoints):**
+```
+X-API-KEY: Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI
+```
+
+### 4. Complete Postman Testing Guide
+
+See **[POSTMAN_TESTS.md](POSTMAN_TESTS.md)** for:
+- 10 comprehensive test cases
+- Copy-paste ready test scripts
+- Authentication tests
+- Validation tests
+- Performance testing
+
+---
+
 ## Overview
 
 This repository contains the backend implementation for an internal activity to monitor visitor distribution across rooms in a building. Cameras installed in each room capture images every minute. A high-performance backend computer processes these images using a YOLO model to count the number of people in each room. The processed data (room ID, timestamp, people count) is stored in Supabase, which acts as the central database.
