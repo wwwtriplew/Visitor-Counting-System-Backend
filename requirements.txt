@@ -1,4 +1,4 @@
 supabase
 ultralytics
-opencv-python
+opencv-python-headless
 python-dotenv
