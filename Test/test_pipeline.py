@@ -8,6 +8,10 @@ import sys
 import base64
 from io import BytesIO
 from datetime import datetime
+from pathlib import Path
+
+# Add parent directory to path so we can import backend modules
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Try to import PIL for creating a test image
 try:
@@ -38,7 +42,7 @@ def create_test_image():
     # Add text
     try:
         draw.text((10, 10), "Test Image", fill='black')
-    except:
+    except Exception:
         pass  # Font not available, skip text
     
     # Convert to base64

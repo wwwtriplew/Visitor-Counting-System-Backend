@@ -10,7 +10,7 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, cast
 
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
@@ -111,7 +111,7 @@ def validate_timestamp(timestamp: datetime) -> None:
     Raises:
         SupabaseValidationError: If the timestamp is invalid.
     """
-    from datetime import timedelta
+    from datetime import timedelta, timezone
     
     if not isinstance(timestamp, datetime):
         raise SupabaseValidationError(
@@ -119,7 +119,14 @@ def validate_timestamp(timestamp: datetime) -> None:
         )
     
     # Check if timestamp is not in the future (with 1 minute tolerance)
-    now = datetime.now()
+    # Handle both timezone-aware and timezone-naive datetimes
+    if timestamp.tzinfo is not None:
+        # Timestamp is timezone-aware, use UTC now
+        now = datetime.now(timezone.utc)
+    else:
+        # Timestamp is timezone-naive, use naive now
+        now = datetime.now()
+    
     if timestamp > now.replace(microsecond=0).replace(second=0) + timedelta(minutes=1):
         raise SupabaseValidationError(
             f"Timestamp {timestamp.isoformat()} is in the future"
@@ -262,7 +269,9 @@ def insert_visitor_count(
                 f"{people_count} people at {timestamp.isoformat()}"
             )
             
-            return response.data[0] if isinstance(response.data, list) else response.data
+            # Type cast: response.data is known to be Dict[str, Any] after successful insert
+            result = response.data[0] if isinstance(response.data, list) else response.data
+            return cast(Dict[str, Any], result)
             
         except Exception as e:
             last_error = e
@@ -326,7 +335,8 @@ def get_latest_counts(
             .execute()
         
         logger.info(f"Retrieved {len(response.data)} recent counts")
-        return response.data
+        # Type cast: response.data is a list of dicts from Supabase query
+        return cast(List[Dict[str, Any]], response.data)
         
     except Exception as e:
         logger.error(f"Failed to fetch latest counts: {str(e)}")
@@ -369,7 +379,8 @@ def get_room_latest_count(
         
         if response.data and len(response.data) > 0:
             logger.info(f"Retrieved latest count for room {room_id}")
-            return response.data[0]
+            # Type cast: response.data[0] is a dict from Supabase query
+            return cast(Dict[str, Any], response.data[0])
         else:
             logger.info(f"No data found for room {room_id}")
             return None

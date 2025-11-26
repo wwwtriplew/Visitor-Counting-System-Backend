@@ -1,0 +1,135 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          HTTP INGESTION SERVER - QUICK REFERENCE                 ║
+╚══════════════════════════════════════════════════════════════════╝
+
+┌─ INSTALLATION ───────────────────────────────────────────────────┐
+│ pip install flask python-dotenv gunicorn                         │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ START SERVER ───────────────────────────────────────────────────┐
+│ Development:  python -m server.app                               │
+│ Production:   gunicorn server.app:app --bind 0.0.0.0:8000 \     │
+│                 --workers 4 --timeout 120                        │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ API KEY ────────────────────────────────────────────────────────┐
+│ Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI                     │
+│ (Stored in .env as INGESTION_API_KEY)                           │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ ENDPOINTS ──────────────────────────────────────────────────────┐
+│                                                                  │
+│ 1. Health Check                                                  │
+│    GET http://localhost:8000/health                              │
+│                                                                  │
+│ 2. Process JSON (base64 image)                                  │
+│    POST http://localhost:8000/api/v1/process-image              │
+│    Headers: X-API-KEY, Content-Type: application/json           │
+│    Body: {"image": "<base64>", "room_id": "lobby"}              │
+│                                                                  │
+│ 3. Process Multipart (raw JPEG)                                 │
+│    POST http://localhost:8000/api/v1/process-image-bytes        │
+│    Headers: X-API-KEY                                            │
+│    Form: file=image.jpg, room_id=lobby                          │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ TEST COMMANDS ──────────────────────────────────────────────────┐
+│ # Health check                                                   │
+│ curl http://localhost:8000/health                                │
+│                                                                  │
+│ # Test with real image (multipart)                              │
+│ curl -X POST http://localhost:8000/api/v1/process-image-bytes \ │
+│   -H "X-API-KEY: Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI" \│
+│   -F "file=@testing_images/sevenpeople.jpg" \                   │
+│   -F "room_id=test-room"                                         │
+│                                                                  │
+│ # Test with JSON (base64)                                        │
+│ curl -X POST http://localhost:8000/api/v1/process-image \       │
+│   -H "X-API-KEY: Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI" \│
+│   -H "Content-Type: application/json" \                         │
+│   -d '{"image":"'"$(base64 -w 0 image.jpg)"'","room_id":"lobby"}'│
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ CAMERA INTEGRATION ─────────────────────────────────────────────┐
+│ Cameras should POST every 60 seconds:                           │
+│                                                                  │
+│ #!/bin/bash                                                      │
+│ API_KEY="Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI"           │
+│ SERVER="http://192.168.1.100:8000"                              │
+│                                                                  │
+│ while true; do                                                   │
+│   curl -X POST "$SERVER/api/v1/process-image-bytes" \           │
+│     -H "X-API-KEY: $API_KEY" \                                   │
+│     -F "file=@/tmp/snapshot.jpg" \                               │
+│     -F "room_id=lobby"                                           │
+│   sleep 60                                                       │
+│ done                                                             │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ CONFIGURATION ──────────────────────────────────────────────────┐
+│ File: .env                                                       │
+│                                                                  │
+│ INGESTION_API_KEY=Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI  │
+│ SERVER_HOST=0.0.0.0                                              │
+│ SERVER_PORT=8000                                                 │
+│ SUPABASE_URL=https://rgkkadtaiivcuuvekwdo.supabase.co           │
+│ SUPABASE_SERVICE_KEY=<configured>                               │
+│ TABLE_NAME=detections                                            │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ VALIDATION RULES ───────────────────────────────────────────────┐
+│ room_id:  ^[A-Za-z0-9_-]{1,64}$                                 │
+│ image:    Max 10MB (decoded)                                     │
+│ format:   JPEG, PNG, or other OpenCV-readable formats           │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ RESPONSE CODES ─────────────────────────────────────────────────┐
+│ 200 OK              - Success, image processed                  │
+│ 400 Bad Request     - Invalid payload/room_id/image             │
+│ 401 Unauthorized    - Missing or invalid API key                │
+│ 413 Payload Too Large - Image exceeds 10MB                      │
+│ 500 Server Error    - Processing failed                         │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ SUCCESS RESPONSE ───────────────────────────────────────────────┐
+│ {                                                                │
+│   "status": "ok",                                                │
+│   "room_id": "lobby",                                            │
+│   "people_count": 7,                                             │
+│   "processing_ms": 142,                                          │
+│   "timestamp": "2025-11-26T10:00:00Z"                            │
+│ }                                                                │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ FILES CREATED ──────────────────────────────────────────────────┐
+│ server/                                                          │
+│ ├── __init__.py         - Package init                          │
+│ ├── app.py             - Flask application (main)               │
+│ ├── config.py          - Configuration loader                   │
+│ ├── requirements.txt   - Dependencies                           │
+│ └── README.md          - Server documentation                   │
+│                                                                  │
+│ Root:                                                            │
+│ ├── SERVER_DEPLOYMENT.md - Complete deployment guide            │
+│ ├── SERVER_SUMMARY.md    - Implementation summary               │
+│ ├── test_server.py       - API test suite                       │
+│ └── start_server.sh      - Quick start script                   │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ DOCUMENTATION ──────────────────────────────────────────────────┐
+│ Quick Start:    server/README.md                                │
+│ Full Guide:     SERVER_DEPLOYMENT.md                            │
+│ Summary:        SERVER_SUMMARY.md                               │
+│ API Spec:       SERVER_IMPLEMENTATION.md                        │
+└──────────────────────────────────────────────────────────────────┘
+
+┌─ NEXT STEPS ─────────────────────────────────────────────────────┐
+│ 1. pip install flask gunicorn                                   │
+│ 2. python -m server.app                                         │
+│ 3. curl http://localhost:8000/health                            │
+│ 4. Test with: python test_server.py                            │
+│ 5. Configure cameras to POST to server                          │
+└──────────────────────────────────────────────────────────────────┘
+
+                   🚀 Server Ready to Use! 📸

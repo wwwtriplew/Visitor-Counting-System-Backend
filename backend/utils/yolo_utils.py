@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 
 import numpy as np
-from ultralytics import YOLO
+from ultralytics import YOLO  # type: ignore[attr-defined]
 
 from backend.config import (
     PERSON_CLASS_ID,

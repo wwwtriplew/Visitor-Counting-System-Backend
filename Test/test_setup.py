@@ -4,6 +4,11 @@ Test script to verify Supabase connection and configuration.
 """
 
 import sys
+from pathlib import Path
+
+# Add parent directory to path so we can import backend modules
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from backend.utils.env_utils import load_and_validate_env, EnvironmentValidationError
 from backend.utils.supabase_utils import create_supabase_client, SupabaseConnectionError
 

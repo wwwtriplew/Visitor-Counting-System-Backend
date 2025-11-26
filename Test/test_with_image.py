@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+# Add parent directory to path so we can import backend modules
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from backend.process_images import ImageProcessingPipeline
 from backend.utils.env_utils import load_and_validate_env
 
@@ -16,8 +19,9 @@ def main():
     print("🧪 Testing with sevenpeople.jpg")
     print("="*70)
     
-    # Load image
-    image_path = Path("testing_images/sevenpeople.jpg")
+    # Load image - path is relative to repository root
+    repo_root = Path(__file__).resolve().parent.parent
+    image_path = repo_root / "testing_images" / "sevenpeople.jpg"
     
     if not image_path.exists():
         print(f"✗ Image not found: {image_path}")

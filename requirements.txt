@@ -2,3 +2,5 @@ supabase
 ultralytics
 opencv-python-headless
 python-dotenv
+flask
+gunicorn
