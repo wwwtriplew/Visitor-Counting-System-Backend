@@ -205,7 +205,7 @@ Expected response:
 ---
 ---
 
-## API Reference a
+## API Reference
 
 ### HTTP Ingestion Server
 
@@ -278,7 +278,7 @@ Query Parameters: None
 ```http
 POST /api/v1/process-image-bytes HTTP/1.1
 Host: your-server:8000
-X-API-KEY: Z8xN7vK2pQ9wL5mR3jT6hF4nY1cX8gS0uE7bV9dA2oI
+X-API-KEY: <<< INSERTION KEY >>>
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
